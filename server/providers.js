@@ -5,7 +5,7 @@ const misc = require('./utils/misc')
 const logger = require('./utils/logging')
 const extraPassportParams = require('./extra-passport-params')
 const cacheProvider = require('./cache-provider')
-// oiclienth = require('./utils/openid-client-helper')
+const { getClient } = require('./utils/openid-client-helper')
 
 var prevConfigHash = 0
 
@@ -62,7 +62,7 @@ function getVerifyFunction (provider) {
   return R.curryN(arity, uncurried)
 }
 
-function setupStrategy (provider) {
+async function setupStrategy (provider) {
   logger.log2('info', `Setting up strategy for provider ${provider.displayName}`)
   logger.log2('debug', `Provider data is\n${JSON.stringify(provider, null, 4)}`)
 
@@ -89,11 +89,10 @@ function setupStrategy (provider) {
   }
 
   const providerOptions = provider.options
-  const isSaml = strategyModule === 'passport-saml'
   const verify = getVerifyFunction(provider)
 
   // Create strategy
-  if (isSaml) {
+  if (strategyModule === 'passport-saml') {
     // Turn off inResponseTo validation if the IDP is configured for IDP-initiated:
     // "an IDP would never do both IDP initiated and SP initiated..."
     if (global.iiconfig.authorizationParams.find(
@@ -120,6 +119,16 @@ function setupStrategy (provider) {
     const samlStrategy = new Strategy(providerOptions, verify)
     passport.use(id, samlStrategy)
     spMetadata.generate(provider, samlStrategy)
+  } else if (strategyModule === 'openid-client') {
+    const client = await getClient(provider, providerOptions)
+    const strategyOptions = { client }
+    if (providerOptions.usePKCE) {
+      strategyOptions.usePKCE = true
+    }
+    if (providerOptions.params) {
+      strategyOptions.params = providerOptions.params
+    }
+    passport.use(id, new Strategy(strategyOptions, verify))
   } else {
     passport.use(id, new Strategy(providerOptions, verify))
   }

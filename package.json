@@ -33,6 +33,7 @@
     "express-list-endpoints": "^5.0.0",
     "express-prom-bundle": "^6.1.0",
     "express-session": "^1.15.6",
+    "jose": "^2.0.3",
     "jsonwebtoken": "^8.4.0",
     "memcached": "^2.2.2",
     "memorystore": "^1.6.0",

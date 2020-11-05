@@ -4,6 +4,7 @@ const server = require('../../../server/app')
 const chai = require('chai')
 const assert = chai.assert
 const InitMock = require('../../testdata/init-mock')
+const config = require('config')
 
 BeforeAll({ timeout: 600 * 1000 }, (done) => {
   // mock init external endpoints
@@ -11,6 +12,14 @@ BeforeAll({ timeout: 600 * 1000 }, (done) => {
   initMock.passportConfigEndpoint()
   initMock.umaTokenEndpoint()
   initMock.umaConfigurationEndpoint()
+
+  // Mock discoveryURL of providers who has openid-client strategy
+  const providers = config.get('passportConfigAuthorizedResponse').providers
+  providers.forEach((provider) => {
+    if (provider.passportStrategyId === 'openid-client') {
+      initMock.discoveryURL(provider.options.issuer)
+    }
+  })
 
   // waits for the server to start (app.listen)
   server.on('appStarted', () => {
